@@ -6,7 +6,9 @@ import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import nl.openweb.confetti.ConfettiGame;
 import nl.openweb.confetti.database.Database;
@@ -21,26 +23,32 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
 import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
+import static nl.openweb.confetti.model.Player.AMOUNT_OF_MOVES;
 
 public class GameScreen implements Screen {
     private final SpriteBatch batch;
     private final ConfettiGame game;
     private final Camera camera;
     private final ShapeRenderer gridRenderer;
+    private final ShapeRenderer controlsRenderer;
+    private final SpriteBatch controlsImagesRenderer;
     private final float gridStartX;
     private final float gridStartY;
     private final List<GridCell> gridCells;
     private final List<Player> players;
+    private final int CONTROL_CELL_SIZE = 55;
+    private AtomicInteger activePlayer = new AtomicInteger(0);
 
     public GameScreen(ConfettiGame game) {
         this.game = game;
         this.batch = new SpriteBatch();
         this.camera = game.getCamera();
         this.gridRenderer = new ShapeRenderer();
+        this.controlsRenderer = new ShapeRenderer();
+        this.controlsImagesRenderer = new SpriteBatch();
         this.gridStartX = game.getCenterX() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
         this.gridStartY = game.getCenterY() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
         this.gridCells = new ArrayList<>();
-        AtomicInteger activePlayer = new AtomicInteger(0);
 
         Gdx.input.setInputProcessor(new InputAdapter(){
             @Override
@@ -49,19 +57,15 @@ public class GameScreen implements Screen {
                 Player currentPlayer = players.get(currentPlayerIndex);
                 if (keycode == Input.Keys.LEFT) {
                     currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),-1,0));
-                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),-1,0));
                 }
                 if (keycode == Input.Keys.RIGHT) {
                     currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),1,0));
-                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),1,0));
                 }
                 if (keycode == Input.Keys.UP) {
                     currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,1));
-                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,1));
                 }
                 if (keycode == Input.Keys.DOWN) {
                     currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,-1));
-                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,-1));
                 }
                 if (keycode == Input.Keys.BACKSPACE) {
                     currentPlayer.revertMove();
@@ -100,6 +104,8 @@ public class GameScreen implements Screen {
 
         drawGrid();
         drawPlayers();
+        drawControls();
+        drawControlImages();
     }
 
     private void drawPlayers() {
@@ -130,6 +136,43 @@ public class GameScreen implements Screen {
         gridRenderer.rect(1, 1, game.getViewport().getWorldWidth() - 1, game.getViewport().getWorldHeight() - 1);*/
 
         gridRenderer.end();
+    }
+
+    private void drawControlImages() {
+        Player player = players.get(activePlayer.get());
+        controlsImagesRenderer.begin();
+        controlsImagesRenderer.setProjectionMatrix(camera.combined);
+        controlsImagesRenderer.draw(player.getSpriteTexture(), 5, (AMOUNT_OF_MOVES * CONTROL_CELL_SIZE) + 15);
+
+        TextureRegion arrow = new TextureRegion(new Texture(Gdx.files.internal("./arrow.png")));
+
+        for (int movesMade = 0; movesMade < player.getMoves().size(); movesMade++) {
+            if (player.getMoves().get(movesMade).getDeltaX() == 1) {
+                controlsImagesRenderer.draw(arrow, 20, (movesMade * CONTROL_CELL_SIZE) + 20, 16, 16, 32, 32, 1, 1, 0);
+            }
+            if (player.getMoves().get(movesMade).getDeltaX() == -1) {
+                controlsImagesRenderer.draw(arrow, 20, (movesMade * CONTROL_CELL_SIZE) + 20, 16, 16, 32, 32, 1, 1, 180);
+            }
+            if (player.getMoves().get(movesMade).getDeltaY() == 1) {
+                controlsImagesRenderer.draw(arrow, 20, (movesMade * CONTROL_CELL_SIZE) + 20, 16, 16, 32, 32, 1, 1, 90);
+            }
+            if (player.getMoves().get(movesMade).getDeltaY() == -1) {
+                controlsImagesRenderer.draw(arrow, 20, (movesMade * CONTROL_CELL_SIZE) + 20, 16, 16, 32, 32, 1, 1, 270);
+            }
+        }
+
+        controlsImagesRenderer.end();
+    }
+    private void drawControls() {
+        controlsRenderer.begin(ShapeRenderer.ShapeType.Line);
+        controlsRenderer.setColor(1, 1, 1, 1);
+        controlsRenderer.setProjectionMatrix(camera.combined);
+
+        for (int cell = 0; cell < AMOUNT_OF_MOVES; cell++) {
+            controlsRenderer.rect(10, (cell*CONTROL_CELL_SIZE) + 10, CONTROL_CELL_SIZE, CONTROL_CELL_SIZE);
+        }
+
+        controlsRenderer.end();
     }
 
     @Override
