@@ -20,6 +20,7 @@ import nl.openweb.confetti.model.Player;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
 import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
@@ -38,7 +39,7 @@ public class GameScreen implements Screen {
     private final List<Player> players;
     private final GameNotification gameNotification;
     private final int CONTROL_CELL_SIZE = 55;
-    private AtomicInteger activePlayer = new AtomicInteger(0);
+    private final AtomicInteger activePlayer = new AtomicInteger(0);
 
     public GameScreen(ConfettiGame game) {
         this.game = game;
@@ -58,6 +59,8 @@ public class GameScreen implements Screen {
             @Override
             public boolean keyDown(int keycode) {
                 int currentPlayerIndex = activePlayer.get();
+                int playersAlive = players.stream().filter(Player::isAlive).toList().size() -1;
+
                 Player currentPlayer = players.get(currentPlayerIndex);
                 if (keycode == Input.Keys.LEFT) {
                     currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),-1,0));
@@ -79,10 +82,12 @@ public class GameScreen implements Screen {
                     currentPlayer.revertMove();
                 }
                 if (keycode == Input.Keys.SPACE) {
-                    if (currentPlayerIndex == 3) {
-                        activePlayer.set(0);
-                    } else {
-                        activePlayer.incrementAndGet();
+                    if(currentPlayer.getMoves().size() == AMOUNT_OF_MOVES) {
+                        if (currentPlayerIndex == playersAlive) {
+                            activePlayer.set(0);
+                        } else {
+                            activePlayer.incrementAndGet();
+                        }
                     }
                 }
                 return false;
