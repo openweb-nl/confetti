@@ -32,11 +32,11 @@ public class MainScreen implements Screen {
 		Gdx.input.setInputProcessor(new InputAdapter(){
 			@Override
 			public boolean keyDown(int keycode) {
-				if (keycode == Input.Keys.ENTER) {
-					MainScreen.this.game.setScreen(new GameScreen(MainScreen.this.game));
-					return true;
-				}
-				return false;
+			if (keycode == Input.Keys.ENTER) {
+				MainScreen.this.game.setScreen(new GameScreen(MainScreen.this.game));
+				return true;
+			}
+			return false;
 			}
 		});
 	}

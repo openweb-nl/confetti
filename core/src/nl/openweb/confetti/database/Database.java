@@ -33,6 +33,7 @@ public class Database {
             String url = "jdbc:sqlite::memory:";
             // create a connection to the database
             conn = DriverManager.getConnection(url);
+            System.out.println(conn);
 
             System.out.println("Connection to SQLite has been established.");
 

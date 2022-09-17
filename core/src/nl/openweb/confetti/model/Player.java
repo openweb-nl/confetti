@@ -3,6 +3,9 @@ package nl.openweb.confetti.model;
 import com.badlogic.gdx.graphics.Texture;
 import nl.openweb.confetti.database.Database;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
 import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
 
@@ -13,6 +16,7 @@ public class Player {
     private int row;
     private int column;
     private boolean dead;
+    private List<Move> moves = new ArrayList<>();
 
     public Player(String id, String name, Texture spriteTexture, int row, int column) {
         this.id = id;
@@ -76,6 +80,18 @@ public class Player {
             this.row = newRowPos;
         } else {
             dead = true;
+        }
+    }
+
+    public void setMove(Move move) {
+        if (moves.size() < 5) {
+            moves.add(move);
+        }
+    }
+    
+    public void revertMove() {
+        if(moves.size() > 0) {
+            moves.remove(moves.size() -1);
         }
     }
 }
