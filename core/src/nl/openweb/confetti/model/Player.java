@@ -16,6 +16,7 @@ public class Player {
     private int column;
     private boolean dead;
     private List<Move> moves;
+    public static final int AMOUNT_OF_MOVES = 5;
 
     public Player(String id, String name, Texture spriteTexture, int row, int column) {
         this.id = id;
@@ -88,7 +89,7 @@ public class Player {
     }
 
     public void addMove(Move move) {
-        if (moves.size() < 5) {
+        if (moves.size() < AMOUNT_OF_MOVES) {
             moves.add(move);
         }
     }
