@@ -1,7 +1,6 @@
 package nl.openweb.confetti.model;
 
 import com.badlogic.gdx.graphics.Texture;
-import nl.openweb.confetti.database.Database;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +15,7 @@ public class Player {
     private int row;
     private int column;
     private boolean dead;
-    private List<Move> moves = new ArrayList<>();
+    private List<Move> moves;
 
     public Player(String id, String name, Texture spriteTexture, int row, int column) {
         this.id = id;
@@ -24,6 +23,7 @@ public class Player {
         this.spriteTexture = spriteTexture;
         this.row = row;
         this.column = column;
+        this.moves = new ArrayList<>();
     }
 
     public String getName() {
@@ -87,7 +87,7 @@ public class Player {
         }
     }
 
-    public void setMove(Move move) {
+    public void addMove(Move move) {
         if (moves.size() < 5) {
             moves.add(move);
         }
@@ -97,5 +97,9 @@ public class Player {
         if(moves.size() > 0) {
             moves.remove(moves.size() -1);
         }
+    }
+
+    public List<Move> getMoves() {
+        return moves;
     }
 }

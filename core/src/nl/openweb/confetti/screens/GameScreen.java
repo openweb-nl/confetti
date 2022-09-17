@@ -6,7 +6,6 @@ import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import nl.openweb.confetti.ConfettiGame;
@@ -46,28 +45,29 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(new InputAdapter(){
             @Override
             public boolean keyDown(int keycode) {
-                int currentPlayer = activePlayer.get();
+                int currentPlayerIndex = activePlayer.get();
+                Player currentPlayer = players.get(currentPlayerIndex);
                 if (keycode == Input.Keys.LEFT) {
-                    players.get(currentPlayer).setMove(new Move(-1,0));
-                    players.get(currentPlayer).applyMove(new Move(-1,0));
+                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),-1,0));
+                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),-1,0));
                 }
                 if (keycode == Input.Keys.RIGHT) {
-                    players.get(currentPlayer).setMove(new Move(1,0));
-                    players.get(currentPlayer).applyMove(new Move(1,0));
+                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),1,0));
+                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),1,0));
                 }
                 if (keycode == Input.Keys.UP) {
-                    players.get(currentPlayer).setMove(new Move(0,1));
-                    players.get(currentPlayer).applyMove(new Move(0,1));
+                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,1));
+                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,1));
                 }
                 if (keycode == Input.Keys.DOWN) {
-                    players.get(currentPlayer).setMove(new Move(0,-1));
-                    players.get(currentPlayer).applyMove(new Move(0,-1));
+                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,-1));
+                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,-1));
                 }
                 if (keycode == Input.Keys.BACKSPACE) {
-                    players.get(currentPlayer).revertMove();
+                    currentPlayer.revertMove();
                 }
                 if (keycode == Input.Keys.SPACE) {
-                    if (currentPlayer == 3) {
+                    if (currentPlayerIndex == 3) {
                         activePlayer.set(0);
                     } else {
                         activePlayer.incrementAndGet();
@@ -78,9 +78,7 @@ public class GameScreen implements Screen {
         });
 
         players = Database.getInstance().getPlayers();
-
-        int startPlayerIndex = new Random().nextInt(players.size()) + 1;
-        //activePlayer = players.get(startPlayerIndex-1).getId();
+        Database.getInstance().addMoves(players.get(0), List.of(new Move(players.get(0).getId(),1,1,0)));
     }
 
     @Override
