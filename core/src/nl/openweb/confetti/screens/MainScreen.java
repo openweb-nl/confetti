@@ -8,6 +8,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 import nl.openweb.confetti.ConfettiGame;
 
@@ -17,6 +18,7 @@ public class MainScreen implements Screen {
 	private final Music music;
 	private final OrthographicCamera camera;
 	private final ConfettiGame game;
+	private final ShapeRenderer debugShapeRenderer;
 
 	public MainScreen(ConfettiGame game) {
 		this.camera = game.getCamera();
@@ -25,6 +27,8 @@ public class MainScreen implements Screen {
 		this.batch = new SpriteBatch();
 		this.title = new Texture(Gdx.files.internal("title.png"));
 		this.music = Gdx.audio.newMusic((Gdx.files.internal("music.mp3")));
+		this.debugShapeRenderer = new ShapeRenderer();
+
 		Gdx.input.setInputProcessor(new InputAdapter(){
 			@Override
 			public boolean keyDown(int keycode) {
@@ -46,14 +50,17 @@ public class MainScreen implements Screen {
 	@Override
 	public void render(float delta) {
 		ScreenUtils.clear(0, 0, 0, 1);
+		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
 		batch.draw(title, game.getCenterX() - (title.getWidth() / 2f), 420);
 		batch.end();
+
+		drawDebugLines();
 	}
 
 	@Override
 	public void resize(int width, int height) {
-
+		game.getViewport().update(width, height);
 	}
 
 	@Override
@@ -75,5 +82,13 @@ public class MainScreen implements Screen {
 	public void dispose() {
 		this.batch.dispose();
 		this.music.dispose();
+	}
+
+	private void drawDebugLines() {
+		debugShapeRenderer.setProjectionMatrix(camera.combined);
+		debugShapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+		debugShapeRenderer.setColor(0, 1, 0, 1);
+		debugShapeRenderer.rect(0, 0, 800, 600);
+		debugShapeRenderer.end();
 	}
 }

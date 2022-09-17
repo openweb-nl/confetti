@@ -1,13 +1,8 @@
 package nl.openweb.confetti;
 
-import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import nl.openweb.confetti.screens.MainScreen;
@@ -24,13 +19,14 @@ public class ConfettiGame extends Game {
 
 	@Override
 	public void create () {
+		this.camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		this.camera.position.set(WORLD_WIDTH / 2f, WORLD_HEIGHT / 2f, 0);
+		this.camera.update();
+
 		viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
 
 		centerX = viewport.getWorldWidth() / 2f;
 		centerY = viewport.getWorldHeight() / 2f;
-
-		this.camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		this.camera.position.set(centerX, centerY, 0);
 
 		this.setScreen(new MainScreen(this));
 	}
@@ -45,8 +41,18 @@ public class ConfettiGame extends Game {
 
 	}
 
+	@Override
+	public void resize(int width, int height) {
+		super.resize(width, height);
+		viewport.update(width, height);
+	}
+
 	public OrthographicCamera getCamera() {
 		return this.camera;
+	}
+
+	public Viewport getViewport() {
+		return viewport;
 	}
 
 	public float getCenterX() {
