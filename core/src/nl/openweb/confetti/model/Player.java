@@ -1,5 +1,7 @@
 package nl.openweb.confetti.model;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Texture;
 
 import java.util.ArrayList;
@@ -18,6 +20,8 @@ public class Player {
     private List<Move> moves;
     public static final int AMOUNT_OF_MOVES = 5;
 
+    private Music music;
+
     public Player(String id, String name, Texture spriteTexture, int row, int column) {
         this.id = id;
         this.name = name;
@@ -25,6 +29,7 @@ public class Player {
         this.row = row;
         this.column = column;
         this.moves = new ArrayList<>();
+        this.music = Gdx.audio.newMusic((Gdx.files.internal("death.mp3")));
     }
 
     public String getName() {
@@ -85,6 +90,10 @@ public class Player {
             this.row = newRowPos;
         } else {
             dead = true;
+        }
+
+        if(dead) {
+            this.music.play();
         }
     }
 
