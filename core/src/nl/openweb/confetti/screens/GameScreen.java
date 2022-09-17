@@ -1,9 +1,6 @@
 package nl.openweb.confetti.screens;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -51,42 +48,40 @@ public class GameScreen implements Screen {
         this.gridStartX = game.getCenterX() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
         this.gridStartY = game.getCenterY() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
         this.gridCells = new ArrayList<>();
-        this.gameNotification = new GameNotification(game, "Testing", 40, 400, 280);
+        this.gameNotification = new GameNotification(game, "Testing", 2, 400, 280, () -> System.out.println("Closed"));
 
-        AtomicInteger activePlayer = new AtomicInteger(0);
-
-        Gdx.input.setInputProcessor(new InputAdapter(){
+        Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
             public boolean keyDown(int keycode) {
                 int currentPlayerIndex = activePlayer.get();
-                int playersAlive = players.stream().filter(Player::isAlive).toList().size() -1;
+                int playersAlive = players.stream().filter(Player::isAlive).toList().size() - 1;
 
                 Player currentPlayer = players.get(currentPlayerIndex);
                 if (keycode == Input.Keys.LEFT) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),-1,0));
-                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),-1,0));
+                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), -1, 0));
                 }
                 if (keycode == Input.Keys.RIGHT) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),1,0));
-                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),1,0));
+                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 1, 0));
                 }
                 if (keycode == Input.Keys.UP) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,1));
-                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,1));
+                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, 1));
                 }
                 if (keycode == Input.Keys.DOWN) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,-1));
-                    currentPlayer.applyMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(),0,-1));
+                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, -1));
                 }
                 if (keycode == Input.Keys.BACKSPACE) {
                     currentPlayer.revertMove();
                 }
                 if (keycode == Input.Keys.SPACE) {
-                    if(currentPlayer.getMoves().size() == AMOUNT_OF_MOVES) {
+                    if (currentPlayer.getMoves().size() == AMOUNT_OF_MOVES) {
                         if (currentPlayerIndex == playersAlive) {
                             activePlayer.set(0);
+                            GameScreen.this.gameNotification.setText("Showtime!");
+                            GameScreen.this.gameNotification.setDialogEvent(() -> new Thread(() -> applyAllPlayerMoves()).start());
                         } else {
                             activePlayer.incrementAndGet();
+                            String playerName = GameScreen.this.players.get(activePlayer.get()).getName();
+                            GameScreen.this.gameNotification.setText(playerName);
                         }
                     }
                 }
@@ -95,7 +90,7 @@ public class GameScreen implements Screen {
         });
 
         players = Database.getInstance().getPlayers();
-        Database.getInstance().addMoves(players.get(0), List.of(new Move(players.get(0).getId(),1,1,0)));
+        Database.getInstance().addMoves(players.get(0), List.of(new Move(players.get(0).getId(), 1, 1, 0)));
     }
 
     @Override
@@ -108,6 +103,9 @@ public class GameScreen implements Screen {
                 this.gridCells.add(new GridCell(column, row, cellStartX, cellStartY));
             }
         }
+
+        String playerName = GameScreen.this.players.get(activePlayer.get()).getName();
+        GameScreen.this.gameNotification.setText(playerName);
     }
 
     @Override
@@ -129,7 +127,7 @@ public class GameScreen implements Screen {
 
         players.stream().filter(Player::isAlive).forEach(player -> {
             GridCell playerGridCell = getPlayerGridCell(player);
-            if(!player.isDead()) {
+            if (!player.isDead()) {
                 batch.draw(player.getSpriteTexture(), player.getCellDrawXPosition(playerGridCell), player.getCellDrawYPosition(playerGridCell));
             }
         });
@@ -178,13 +176,29 @@ public class GameScreen implements Screen {
 
         controlsImagesRenderer.end();
     }
+
+    private void applyAllPlayerMoves() {
+        for (int i = 0; i < AMOUNT_OF_MOVES; i++) {
+            players.forEach(player -> {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        System.out.println("Apply move: " + player.getName());
+                        player.applyMove(player.popMove());
+                    }
+            );
+        }
+    }
+
     private void drawControls() {
         controlsRenderer.begin(ShapeRenderer.ShapeType.Line);
         controlsRenderer.setColor(1, 1, 1, 1);
         controlsRenderer.setProjectionMatrix(camera.combined);
 
         for (int cell = 0; cell < AMOUNT_OF_MOVES; cell++) {
-            controlsRenderer.rect(10, (cell*CONTROL_CELL_SIZE) + 10, CONTROL_CELL_SIZE, CONTROL_CELL_SIZE);
+            controlsRenderer.rect(10, (cell * CONTROL_CELL_SIZE) + 10, CONTROL_CELL_SIZE, CONTROL_CELL_SIZE);
         }
 
         controlsRenderer.end();

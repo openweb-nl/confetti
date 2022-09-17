@@ -102,6 +102,10 @@ public class Player {
             moves.add(move);
         }
     }
+
+    public Move popMove() {
+        return moves.remove(0);
+    }
     
     public void revertMove() {
         if(moves.size() > 0) {

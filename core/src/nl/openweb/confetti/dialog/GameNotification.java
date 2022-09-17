@@ -14,18 +14,20 @@ public class GameNotification {
 
     private final ShapeRenderer notificationRenderer;
     private final ConfettiGame game;
-    private final String text;
     private final SpriteBatch batch;
     private final float duration;
     private final int width;
     private final int height;
     private final float startX;
     private final float startY;
+    private DialogEvent dialogEvent;
     private BitmapFont font;
+    private String text;
+    private boolean visible;
 
-    private float timePassed;
+    private float timePassed = Float.MAX_VALUE;
 
-    public GameNotification(ConfettiGame game, String text, int duration, int width, int height) {
+    public GameNotification(ConfettiGame game, String text, int duration, int width, int height, DialogEvent dialogEvent) {
         this.game = game;
         this.text = text;
         this.duration = duration;
@@ -34,6 +36,7 @@ public class GameNotification {
         this.startX = game.getCenterX() - (width / 2f);
         this.startY = game.getCenterY() - (height / 2f);
         this.notificationRenderer = new ShapeRenderer();
+        this.dialogEvent = dialogEvent;
         this.batch = new SpriteBatch();
         this.createBitmapFont();
     }
@@ -56,9 +59,26 @@ public class GameNotification {
 
             batch.begin();
             batch.setProjectionMatrix(game.getCamera().combined);
-            font.draw(batch, "Player 1 start!", game.getCenterX(), game.getCenterY() + 16, 0f, Align.center, false);
+            font.draw(batch, text, game.getCenterX(), game.getCenterY() + 16, 0f, Align.center, false);
             batch.end();
+        } else if (visible) {
+            visible = false;
+            dialogEvent.dialogClosed();
         }
+    }
+
+    public DialogEvent getDialogEvent() {
+        return dialogEvent;
+    }
+
+    public void setDialogEvent(DialogEvent dialogEvent) {
+        this.dialogEvent = dialogEvent;
+    }
+
+    public void setText(final String text) {
+        this.text = text;
+        this.timePassed = 0;
+        this.visible = true;
     }
 
     private void createBitmapFont() {
