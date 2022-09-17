@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import nl.openweb.confetti.database.Database;
 import nl.openweb.confetti.screens.MainScreen;
 
 public class ConfettiGame extends Game {
@@ -29,6 +30,8 @@ public class ConfettiGame extends Game {
 		centerY = viewport.getWorldHeight() / 2f;
 
 		this.setScreen(new MainScreen(this));
+
+		Database.getInstance().connect();
 	}
 
 	@Override

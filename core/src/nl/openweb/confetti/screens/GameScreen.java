@@ -1,18 +1,20 @@
 package nl.openweb.confetti.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import nl.openweb.confetti.ConfettiGame;
+import nl.openweb.confetti.database.Database;
 import nl.openweb.confetti.model.GridCell;
+import nl.openweb.confetti.model.Move;
 import nl.openweb.confetti.model.Player;
 
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,12 +40,27 @@ public class GameScreen implements Screen {
         this.gridStartY = game.getCenterY() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
         this.gridCells = new ArrayList<>();
 
-        players = List.of(
-                new Player("Blue player", new Texture(Gdx.files.internal("blue-player.png")), 0, 0),
-                new Player("Green player", new Texture(Gdx.files.internal("green-player.png")), GRID_DIMENSION-1, 0),
-                new Player("Red player", new Texture(Gdx.files.internal("red-player.png")), 0, GRID_DIMENSION-1),
-                new Player("Yellow player", new Texture(Gdx.files.internal("yellow-player.png")), GRID_DIMENSION-1, GRID_DIMENSION-1)
-        );
+        Gdx.input.setInputProcessor(new InputAdapter(){
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode == Input.Keys.LEFT) {
+                    players.get(0).applyMove(new Move(-1,0));
+                }
+                if (keycode == Input.Keys.RIGHT) {
+                    players.get(0).applyMove(new Move(1,0));
+                }
+                if (keycode == Input.Keys.UP) {
+                    players.get(0).applyMove(new Move(0,1));
+                }
+                if (keycode == Input.Keys.DOWN) {
+                    players.get(0).applyMove(new Move(0,-1));
+                }
+                return false;
+            }
+        });
+
+        players = Database.getInstance().getPlayers();
+        Database.getInstance().addMoves(players.get(0), List.of(new Move(1,0)));
     }
 
     @Override
@@ -72,7 +89,9 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
         players.forEach(player -> {
             GridCell playerGridCell = getPlayerGridCell(player);
-            batch.draw(player.getSpriteTexture(), player.getCellDrawXPosition(playerGridCell), player.getCellDrawYPosition(playerGridCell));
+            if(!player.isDead()) {
+                batch.draw(player.getSpriteTexture(), player.getCellDrawXPosition(playerGridCell), player.getCellDrawYPosition(playerGridCell));
+            }
         });
         batch.end();
     }
@@ -88,8 +107,8 @@ public class GameScreen implements Screen {
 
         gridCells.forEach(gridCell -> gridRenderer.rect(gridCell.getStartX(), gridCell.getStartY(), GRID_CELL_SIZE, GRID_CELL_SIZE));
 
-        gridRenderer.setColor(0, 1, 0, 1);
-        gridRenderer.rect(1, 1, game.getViewport().getWorldWidth() - 1, game.getViewport().getWorldHeight() - 1);
+       /* gridRenderer.setColor(0, 1, 0, 1);
+        gridRenderer.rect(1, 1, game.getViewport().getWorldWidth() - 1, game.getViewport().getWorldHeight() - 1);*/
 
         gridRenderer.end();
     }
