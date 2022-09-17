@@ -1,10 +1,14 @@
 package nl.openweb.confetti.model;
 
 public class Move {
+    String playerId;
+    int sequence;
     int deltaX;
     int deltaY;
 
-    public Move(int deltaX, int deltaY) {
+    public Move(String playerId, int sequence, int deltaX, int deltaY) {
+        this.playerId = playerId;
+        this.sequence = sequence;
         this.deltaX = deltaX;
         this.deltaY = deltaY;
     }

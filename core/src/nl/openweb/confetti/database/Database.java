@@ -24,7 +24,8 @@ public class Database {
         return database;
     }
 
-    private Database(){}
+    private Database() {
+    }
 
     public void connect() {
 
@@ -47,9 +48,9 @@ public class Database {
 
         boolean execute = statement.execute("CREATE TABLE PLAYERS (id VARCHAR(36) PRIMARY KEY, name VARCHAR(20), texture VARCHAR(50), position VARCHAR(5))");
         addPlayer("Blue player", "0-0", "blue-player.png");
-        addPlayer("Red player", (GridCell.GRID_DIMENSION-1) + "-0", "red-player.png");
-        addPlayer("Green player", "0-" + (GridCell.GRID_DIMENSION-1), "green-player.png");
-        addPlayer("Yellow player", (GridCell.GRID_DIMENSION-1) + "-" + (GridCell.GRID_DIMENSION-1), "yellow-player.png");
+        addPlayer("Red player", (GridCell.GRID_DIMENSION - 1) + "-0", "red-player.png");
+        addPlayer("Green player", "0-" + (GridCell.GRID_DIMENSION - 1), "green-player.png");
+        addPlayer("Yellow player", (GridCell.GRID_DIMENSION - 1) + "-" + (GridCell.GRID_DIMENSION - 1), "yellow-player.png");
 
         statement.execute("CREATE TABLE MOVES (player_id VARCHAR(36), sequence INTEGER, delta_x INTEGER, delta_y INTEGER)");
     }
@@ -60,17 +61,38 @@ public class Database {
         player.execute("INSERT INTO PLAYERS (id, name, texture, position) VALUES ('" + playerId + "', '" + playerName + "', '" + textureFilename + "', '" + position + "')");
     }
 
-    public void addMoves(Player player, List<Move> moves){
+    public void addMoves(Player player, List<Move> moves) {
         final AtomicInteger moveId = new AtomicInteger(0);
         moves.forEach(move -> {
-            Statement addMovesStatement = null;
+            Statement addMovesStatement;
             try {
                 addMovesStatement = conn.createStatement();
-                addMovesStatement.execute("INSERT INTO MOVES (player_id, sequence, delta_x, delta_y) VALUES ('" + player.getId() +"', '" + moveId.incrementAndGet() +"', '" + move.getDeltaX() +"', '" + move.getDeltaY() +"')");
+                addMovesStatement.execute("INSERT INTO MOVES (player_id, sequence, delta_x, delta_y) VALUES ('" + player.getId() + "', '" + moveId.incrementAndGet() + "', '" + move.getDeltaX() + "', '" + move.getDeltaY() + "')");
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         });
+    }
+
+    public List<Move> getMoves(String playerId) {
+        List<Move> moves = new ArrayList<>();
+
+        try {
+            ResultSet resultSet = conn.createStatement().executeQuery("SELECT * FROM MOVES WHERE player_id='" + playerId + "'");
+            while (resultSet.next()) {
+                Move move = new Move(
+                        resultSet.getString("player_id"),
+                        resultSet.getInt("sequence"),
+                        resultSet.getInt("delta_x"),
+                        resultSet.getInt("delta_y")
+                );
+                moves.add(move);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return moves;
     }
 
     public List<Player> getPlayers() {

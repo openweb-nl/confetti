@@ -54,6 +54,10 @@ public class Player {
         return dead;
     }
 
+    public boolean isAlive() {
+        return !dead;
+    }
+
     public float getCellDrawXPosition(GridCell gridCell) {
         return gridCell.getStartX() + ((GRID_CELL_SIZE / 2f) - (this.spriteTexture.getWidth() / 2f));
     }
