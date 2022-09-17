@@ -10,13 +10,13 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import nl.openweb.confetti.ConfettiGame;
 import nl.openweb.confetti.database.Database;
+import nl.openweb.confetti.dialog.GameNotification;
 import nl.openweb.confetti.model.GridCell;
 import nl.openweb.confetti.model.Move;
 import nl.openweb.confetti.model.Player;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
@@ -31,6 +31,7 @@ public class GameScreen implements Screen {
     private final float gridStartY;
     private final List<GridCell> gridCells;
     private final List<Player> players;
+    private final GameNotification gameNotification;
 
     public GameScreen(ConfettiGame game) {
         this.game = game;
@@ -40,6 +41,8 @@ public class GameScreen implements Screen {
         this.gridStartX = game.getCenterX() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
         this.gridStartY = game.getCenterY() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
         this.gridCells = new ArrayList<>();
+        this.gameNotification = new GameNotification(game, "Testing", 40, 400, 280);
+
         AtomicInteger activePlayer = new AtomicInteger(0);
 
         Gdx.input.setInputProcessor(new InputAdapter(){
@@ -100,6 +103,8 @@ public class GameScreen implements Screen {
 
         drawGrid();
         drawPlayers();
+
+        this.gameNotification.drawNotification();
     }
 
     private void drawPlayers() {
@@ -154,6 +159,8 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
-
+        gridRenderer.dispose();
+        batch.dispose();
+        this.gameNotification.dispose();
     }
 }
