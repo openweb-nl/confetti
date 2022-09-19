@@ -60,6 +60,10 @@ public class Player {
         this.column = column;
     }
 
+    public void setDead(boolean dead) {
+        this.dead = dead;
+    }
+
     public boolean isDead() {
         return dead;
     }
@@ -104,7 +108,9 @@ public class Player {
     }
 
     public Move popMove() {
-        return moves.remove(0);
+        if (!moves.isEmpty())
+            return moves.remove(0);
+        return null;
     }
     
     public void revertMove() {

@@ -3,6 +3,7 @@ package nl.openweb.confetti.dialog;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -13,13 +14,14 @@ public class GameNotification {
     private static final int MARGIN = 10;
 
     private final ShapeRenderer notificationRenderer;
+    private final GlyphLayout glyphLayout;
     private final ConfettiGame game;
     private final SpriteBatch batch;
     private final float duration;
-    private final int width;
-    private final int height;
-    private final float startX;
-    private final float startY;
+    private float width;
+    private float height;
+    private float startX;
+    private float startY;
     private DialogEvent dialogEvent;
     private BitmapFont font;
     private String text;
@@ -36,6 +38,7 @@ public class GameNotification {
         this.startX = game.getCenterX() - (width / 2f);
         this.startY = game.getCenterY() - (height / 2f);
         this.notificationRenderer = new ShapeRenderer();
+        this.glyphLayout = new GlyphLayout();
         this.dialogEvent = dialogEvent;
         this.batch = new SpriteBatch();
         this.createBitmapFont();
@@ -46,6 +49,9 @@ public class GameNotification {
         timePassed += deltaTime;
 
         if (timePassed < duration) {
+            width = glyphLayout.width + 200;
+            startX = game.getCenterX() - (width / 2f);
+
             notificationRenderer.begin(ShapeRenderer.ShapeType.Filled);
             notificationRenderer.setColor(0.1f, 0.1f, .1f, 1);
             notificationRenderer.setProjectionMatrix(game.getCamera().combined);
@@ -59,7 +65,7 @@ public class GameNotification {
 
             batch.begin();
             batch.setProjectionMatrix(game.getCamera().combined);
-            font.draw(batch, text, game.getCenterX(), game.getCenterY() + 16, 0f, Align.center, false);
+            font.draw(batch, glyphLayout, game.getCenterX() - (glyphLayout.width / 2f) , game.getCenterY() + 16);
             batch.end();
         } else if (visible) {
             visible = false;
@@ -79,6 +85,8 @@ public class GameNotification {
         this.text = text;
         this.timePassed = 0;
         this.visible = true;
+
+        glyphLayout.setText(font, text);
     }
 
     private void createBitmapFont() {

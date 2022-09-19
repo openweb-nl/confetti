@@ -1,6 +1,9 @@
 package nl.openweb.confetti.screens;
 
-import com.badlogic.gdx.*;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -8,16 +11,16 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import nl.openweb.confetti.ConfettiGame;
+import nl.openweb.confetti.GridManager;
 import nl.openweb.confetti.database.Database;
 import nl.openweb.confetti.dialog.GameNotification;
 import nl.openweb.confetti.model.GridCell;
 import nl.openweb.confetti.model.Move;
 import nl.openweb.confetti.model.Player;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
 import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
@@ -30,13 +33,9 @@ public class GameScreen implements Screen {
     private final ShapeRenderer gridRenderer;
     private final ShapeRenderer controlsRenderer;
     private final SpriteBatch controlsImagesRenderer;
-    private final float gridStartX;
-    private final float gridStartY;
-    private final List<GridCell> gridCells;
-    private final List<Player> players;
     private final GameNotification gameNotification;
     private final int CONTROL_CELL_SIZE = 55;
-    private final AtomicInteger activePlayer = new AtomicInteger(0);
+    //private final AtomicInteger activePlayer = new AtomicInteger(0);
 
     public GameScreen(ConfettiGame game) {
         this.game = game;
@@ -45,18 +44,21 @@ public class GameScreen implements Screen {
         this.gridRenderer = new ShapeRenderer();
         this.controlsRenderer = new ShapeRenderer();
         this.controlsImagesRenderer = new SpriteBatch();
-        this.gridStartX = game.getCenterX() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
-        this.gridStartY = game.getCenterY() - ((GRID_DIMENSION * GRID_CELL_SIZE) / 2f);
-        this.gridCells = new ArrayList<>();
         this.gameNotification = new GameNotification(game, "Testing", 2, 400, 280, () -> System.out.println("Closed"));
+
+        GridManager.getInstance().init(game.getCenterX(), game.getCenterY());
+        GridManager.getInstance().setPlayers(Database.getInstance().getPlayers());
+        Database.getInstance().addMoves(GridManager.getInstance().getPlayers().get(0), List.of(
+                new Move(GridManager.getInstance().getPlayers().get(0).getId(), 1, 1, 0))
+        );
+        GridManager.getInstance().resetActivePlayer();
 
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
             public boolean keyDown(int keycode) {
-                int currentPlayerIndex = activePlayer.get();
-                int playersAlive = players.stream().filter(Player::isAlive).toList().size() - 1;
+                int playersAlive = GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).toList().size() - 1;
 
-                Player currentPlayer = players.get(currentPlayerIndex);
+                Player currentPlayer = GridManager.getInstance().getActivePlayer();
                 if (keycode == Input.Keys.LEFT) {
                     currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), -1, 0));
                 }
@@ -74,37 +76,33 @@ public class GameScreen implements Screen {
                 }
                 if (keycode == Input.Keys.SPACE) {
                     if (currentPlayer.getMoves().size() == AMOUNT_OF_MOVES) {
-                        if (currentPlayerIndex == playersAlive) {
-                            activePlayer.set(0);
+                        Player nextActivePlayer = GridManager.getInstance().getNextActivePlayer();
+                        if (nextActivePlayer == null) {
+                            GridManager.getInstance().resetActivePlayer();
                             GameScreen.this.gameNotification.setText("Showtime!");
                             GameScreen.this.gameNotification.setDialogEvent(() -> new Thread(() -> applyAllPlayerMoves()).start());
                         } else {
-                            activePlayer.incrementAndGet();
-                            String playerName = GameScreen.this.players.get(activePlayer.get()).getName();
-                            GameScreen.this.gameNotification.setText(playerName);
+                            GameScreen.this.gameNotification.setText(nextActivePlayer.getName());
                         }
                     }
                 }
                 return false;
             }
         });
-
-        players = Database.getInstance().getPlayers();
-        Database.getInstance().addMoves(players.get(0), List.of(new Move(players.get(0).getId(), 1, 1, 0)));
     }
 
     @Override
     public void show() {
         for (int column = 0; column < GRID_DIMENSION; column++) {
             for (int row = 0; row < GRID_DIMENSION; row++) {
-                final float cellStartX = gridStartX + (column * GRID_CELL_SIZE);
-                final float cellStartY = gridStartY + (row * GRID_CELL_SIZE);
+                final float cellStartX = GridManager.getInstance().getGridStartX() + (column * GRID_CELL_SIZE);
+                final float cellStartY = GridManager.getInstance().getGridStartY() + (row * GRID_CELL_SIZE);
 
-                this.gridCells.add(new GridCell(column, row, cellStartX, cellStartY));
+                GridManager.getInstance().addCell(new GridCell(column, row, cellStartX, cellStartY));
             }
         }
 
-        String playerName = GameScreen.this.players.get(activePlayer.get()).getName();
+        String playerName = GridManager.getInstance().getActivePlayer().getName();
         GameScreen.this.gameNotification.setText(playerName);
     }
 
@@ -115,18 +113,18 @@ public class GameScreen implements Screen {
 
         drawGrid();
         drawPlayers();
-
-        this.gameNotification.drawNotification();
         drawControls();
         drawControlImages();
+
+        this.gameNotification.drawNotification();
     }
 
     private void drawPlayers() {
         batch.begin();
         batch.setProjectionMatrix(camera.combined);
 
-        players.stream().filter(Player::isAlive).forEach(player -> {
-            GridCell playerGridCell = getPlayerGridCell(player);
+        GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).forEach(player -> {
+            GridCell playerGridCell = GridManager.getInstance().getPlayerGridCell(player);
             if (!player.isDead()) {
                 batch.draw(player.getSpriteTexture(), player.getCellDrawXPosition(playerGridCell), player.getCellDrawYPosition(playerGridCell));
             }
@@ -134,25 +132,21 @@ public class GameScreen implements Screen {
         batch.end();
     }
 
-    private GridCell getPlayerGridCell(Player player) {
-        return gridCells.stream().filter(gridCell -> gridCell.getColumn() == player.getColumn() && gridCell.getRow() == player.getRow()).findFirst().get();
-    }
 
     private void drawGrid() {
         gridRenderer.begin(ShapeRenderer.ShapeType.Line);
         gridRenderer.setColor(1, 1, 1, 1);
         gridRenderer.setProjectionMatrix(camera.combined);
 
-        gridCells.forEach(gridCell -> gridRenderer.rect(gridCell.getStartX(), gridCell.getStartY(), GRID_CELL_SIZE, GRID_CELL_SIZE));
-
-       /* gridRenderer.setColor(0, 1, 0, 1);
-        gridRenderer.rect(1, 1, game.getViewport().getWorldWidth() - 1, game.getViewport().getWorldHeight() - 1);*/
+        GridManager.getInstance()
+                .getGridCells()
+                .forEach(gridCell -> gridRenderer.rect(gridCell.getStartX(), gridCell.getStartY(), GRID_CELL_SIZE, GRID_CELL_SIZE));
 
         gridRenderer.end();
     }
 
     private void drawControlImages() {
-        Player player = players.get(activePlayer.get());
+        Player player = GridManager.getInstance().getActivePlayer();
         controlsImagesRenderer.begin();
         controlsImagesRenderer.setProjectionMatrix(camera.combined);
         controlsImagesRenderer.draw(player.getSpriteTexture(), 5, (AMOUNT_OF_MOVES * CONTROL_CELL_SIZE) + 15);
@@ -178,18 +172,48 @@ public class GameScreen implements Screen {
     }
 
     private void applyAllPlayerMoves() {
-        for (int i = 0; i < AMOUNT_OF_MOVES; i++) {
-            players.forEach(player -> {
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+        long playersAlive = GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).count();
+
+        if (playersAlive > 1) {
+            for (int i = 0; i < AMOUNT_OF_MOVES; i++) {
+                GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).forEach(player -> {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            //activePlayer.set(GridManager.getInstance().getPlayers().indexOf(player));
+                            GridManager.getInstance().setActivePlayer(player);
+                            Move move = player.popMove();
+                            if (move != null) {
+                                player.applyMove(move);
+                                hitPlayer(player);
+                            }
                         }
-                        System.out.println("Apply move: " + player.getName());
-                        player.applyMove(player.popMove());
-                    }
-            );
+                );
+            }
+
+            this.gameNotification.setText("Next round!");
+            this.gameNotification.setDialogEvent(this::startNewRound);
+        } else {
+            this.gameNotification.setText(GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).toList().get(0).getName() + " has WON!");
         }
+    }
+
+    private Optional hitPlayer(Player activePlayer) {
+        Player deadPlayer = null;
+        for (Player player : GridManager.getInstance().getPlayers()) {
+            if (player.getColumn() == activePlayer.getColumn() && player.getRow() == activePlayer.getRow() && !player.getId().equals(activePlayer.getId())) {
+                player.setDead(true);
+                gameNotification.setText(player.getName() + " killed by " + activePlayer.getName());
+                deadPlayer = player;
+            }
+        }
+        return Optional.ofNullable(deadPlayer);
+    }
+
+    private void startNewRound() {
+
     }
 
     private void drawControls() {

@@ -59,5 +59,11 @@ project(":core") {
         implementation "org.xerial:sqlite-jdbc:3.8.7"
         implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+
+        compileOnly 'org.projectlombok:lombok:1.18.24'
+        annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+        testCompileOnly 'org.projectlombok:lombok:1.18.24'
+        testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
     }
 }
