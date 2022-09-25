@@ -1,10 +1,8 @@
 package nl.openweb.confetti;
 
 import lombok.Data;
-import nl.openweb.confetti.model.GridCell;
-import nl.openweb.confetti.model.Move;
-import nl.openweb.confetti.model.Player;
-import nl.openweb.confetti.model.PlayerActor;
+import nl.openweb.confetti.exception.GridOutOfBoundsException;
+import nl.openweb.confetti.model.*;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -15,6 +13,7 @@ import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
 
 @Data
 public class GridManager {
+    public static final int PLAYER_MOVE_DELAY = 500;
     private final List<GridCell> gridCells;
 
     private float gridStartX;
@@ -55,16 +54,30 @@ public class GridManager {
 
     public PlayerActor getNextActivePlayer(boolean resetToStart) {
         int nextPlayerIndex = players.indexOf(getActivePlayer()) + 1;
-        if(nextPlayerIndex < players.size()) {
-            PlayerActor player = players.get(nextPlayerIndex);
-            activePlayerId = player.getId();
-            return player;
-        } else {
-            if (resetToStart) {
-                return resetActivePlayer();
+        long playersAliveCount = players.stream().filter(PlayerActor::isAlive).count();
+
+        if(playersAliveCount > 1) {
+            if (nextPlayerIndex < players.size()) {
+                PlayerActor player = players.get(nextPlayerIndex);
+                activePlayerId = player.getId();
+
+                if (!player.isAlive()) {
+                    return getNextActivePlayer();
+                } else {
+                    return player;
+                }
             } else {
-                return null;
+                if (resetToStart) {
+                    return resetActivePlayer();
+                } else {
+                    return null;
+                }
             }
+        } else {
+            PlayerActor winningPlayer = players.stream().filter(PlayerActor::isAlive).findFirst().get();
+            activePlayerId = winningPlayer.getId();
+            System.out.println("Only one player left, player has WON the game: " + winningPlayer.getName());
+            return null;
         }
     }
 
@@ -72,24 +85,24 @@ public class GridManager {
         return getNextActivePlayer(false);
     }
 
-    public Point2D getCellCenterCoordinates(int cellRow, int cellColumn) {
-        if (cellRow > (GRID_DIMENSION - 1)) throw new IllegalArgumentException("Requested cell row does not exist");
-        if (cellColumn > (GRID_DIMENSION - 1)) throw new IllegalArgumentException("Requested cell column does not exist");
+    public Point2D getCellCenterCoordinates(GridCoordinates gridCoordinates) {
+        if (gridCoordinates.getRow() >= GRID_DIMENSION || gridCoordinates.getRow() < 0) throw new GridOutOfBoundsException("Requested cell row does not exist: " + gridCoordinates.getRow());
+        if (gridCoordinates.getColumn() >= GRID_DIMENSION || gridCoordinates.getColumn() < 0) throw new GridOutOfBoundsException("Requested cell column does not exist: " + gridCoordinates.getColumn());
 
-        final float cellCenterStartX = GridManager.getInstance().getGridStartX() + (cellColumn * GRID_CELL_SIZE) + (GRID_CELL_SIZE / 2f);
-        final float cellCenterStartY = GridManager.getInstance().getGridStartY() + (cellColumn * GRID_CELL_SIZE) + (GRID_CELL_SIZE / 2f);
+        final float cellCenterStartX = GridManager.getInstance().getGridStartX() + (gridCoordinates.getColumn() * GRID_CELL_SIZE) + (GRID_CELL_SIZE / 2f);
+        final float cellCenterStartY = GridManager.getInstance().getGridStartY() + (gridCoordinates.getRow() * GRID_CELL_SIZE) + (GRID_CELL_SIZE / 2f);
 
         return new Point2D.Float(cellCenterStartX, cellCenterStartY);
     }
 
     public void performPlayerMove() {
         PlayerActor activePlayer = getActivePlayer();
-       /* Move move = activePlayer.popMove();
-        if (move != null) activePlayer.applyMove(move);*/
+        Move move = activePlayer.popMove();
+        if (move != null) activePlayer.applyMove(move);
     }
 
     public PlayerActor resetActivePlayer() {
-        PlayerActor player = players.get(0);
+        PlayerActor player = players.stream().filter(PlayerActor::isAlive).findFirst().get();
         activePlayerId = player.getId();
         return player;
     }

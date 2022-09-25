@@ -17,13 +17,12 @@ import nl.openweb.confetti.database.Database;
 import nl.openweb.confetti.dialog.GameNotification;
 import nl.openweb.confetti.model.GridCell;
 import nl.openweb.confetti.model.Move;
-import nl.openweb.confetti.model.Player;
 import nl.openweb.confetti.model.PlayerActor;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import static nl.openweb.confetti.GridManager.PLAYER_MOVE_DELAY;
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
 import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
 import static nl.openweb.confetti.model.Player.AMOUNT_OF_MOVES;
@@ -50,10 +49,11 @@ public class GameScreen implements Screen {
         this.gameNotification = new GameNotification(game, "Testing", 2, 400, 280, () -> System.out.println("Closed"));
         this.stage = new Stage(game.getViewport(), batch);
 
+        GridManager.getInstance().init(game.getCenterX(), game.getCenterY());
+
         final List<PlayerActor> players = Database.getInstance().getPlayers();
         players.forEach(stage::addActor);
 
-        GridManager.getInstance().init(game.getCenterX(), game.getCenterY());
         GridManager.getInstance().setPlayers(players);
         Database.getInstance().addMoves(GridManager.getInstance().getPlayers().get(0), List.of(
                 new Move(GridManager.getInstance().getPlayers().get(0).getId(), 1, 1, 0))
@@ -129,7 +129,6 @@ public class GameScreen implements Screen {
     private void drawPlayers() {
         batch.begin();
         batch.setProjectionMatrix(camera.combined);
-
         /*GridManager.getInstance().getPlayers().stream().filter(PlayerActor::isAlive).forEach(player -> {
             GridCell playerGridCell = GridManager.getInstance().getPlayerGridCell(player);
             if (!player.isDead()) {
@@ -137,6 +136,9 @@ public class GameScreen implements Screen {
             }
         });*/
         batch.end();
+
+        stage.act(Gdx.graphics.getDeltaTime());
+        stage.draw();
     }
 
 
@@ -179,12 +181,13 @@ public class GameScreen implements Screen {
     }
 
     private void applyAllPlayerMoves() {
-        long playersAlive = GridManager.getInstance().getPlayers().stream().filter(PlayerActor::isAlive).count();
+        GridManager.getInstance().performPlayerMove();
+        /*long playersAlive = GridManager.getInstance().getPlayers().stream().filter(PlayerActor::isAlive).count();
 
         PlayerActor activePlayer = GridManager.getInstance().getActivePlayer();
         while (activePlayer != null) {
-            try {
-                Thread.sleep(500);
+            *//*try {
+                Thread.sleep(PLAYER_MOVE_DELAY);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -198,8 +201,9 @@ public class GameScreen implements Screen {
                     e.printStackTrace();
                 }
             }
-            activePlayer = GridManager.getInstance().getNextActivePlayer(true);
-        }
+            activePlayer = GridManager.getInstance().getNextActivePlayer(true);*//*
+
+        }*/
 
        /* if (playersAlive > 1) {
             for (int i = 0; i < AMOUNT_OF_MOVES; i++) {
@@ -230,7 +234,9 @@ public class GameScreen implements Screen {
     private Optional hitPlayer(PlayerActor activePlayer) {
         PlayerActor deadPlayer = null;
         for (PlayerActor player : GridManager.getInstance().getPlayers()) {
-            if (player.getColumn() == activePlayer.getColumn() && player.getRow() == activePlayer.getRow() && !player.getId().equals(activePlayer.getId())) {
+            if (player.getGridCoordinates().getColumn() == activePlayer.getGridCoordinates().getColumn() &&
+                    player.getGridCoordinates().getRow() == activePlayer.getGridCoordinates().getRow() &&
+                    !player.getId().equals(activePlayer.getId())) {
                 player.setAlive(false);
                 gameNotification.setText(player.getName() + " killed by " + activePlayer.getName());
                 deadPlayer = player;
