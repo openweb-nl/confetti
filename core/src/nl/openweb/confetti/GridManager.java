@@ -1,12 +1,14 @@
 package nl.openweb.confetti;
 
 import lombok.Data;
+import nl.openweb.confetti.dialog.GameNotification;
 import nl.openweb.confetti.exception.GridOutOfBoundsException;
 import nl.openweb.confetti.model.*;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
 import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
@@ -56,6 +58,11 @@ public class GridManager {
         int nextPlayerIndex = players.indexOf(getActivePlayer()) + 1;
         long playersAliveCount = players.stream().filter(PlayerActor::isAlive).count();
 
+        long playersNoMovesCount = players.stream().filter(playerActor -> playerActor.getMoves().size() == 0).count();
+        if (playersNoMovesCount == players.size()) {
+            GameNotification.getInstance().setText("Next round!");
+        }
+
         if(playersAliveCount > 1) {
             if (nextPlayerIndex < players.size()) {
                 PlayerActor player = players.get(nextPlayerIndex);
@@ -74,9 +81,12 @@ public class GridManager {
                 }
             }
         } else {
-            PlayerActor winningPlayer = players.stream().filter(PlayerActor::isAlive).findFirst().get();
-            activePlayerId = winningPlayer.getId();
-            System.out.println("Only one player left, player has WON the game: " + winningPlayer.getName());
+            Optional<PlayerActor> winningPlayerOpt = players.stream().filter(PlayerActor::isAlive).findFirst();
+            if (winningPlayerOpt.isPresent()) {
+                activePlayerId = winningPlayerOpt.get().getId();
+                System.out.println("Only one player left, player has WON the game: " + winningPlayerOpt.get().getName());
+                GameNotification.getInstance().setText("Winner " + winningPlayerOpt.get().getName());
+            }
             return null;
         }
     }

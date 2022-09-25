@@ -46,10 +46,11 @@ public class GameScreen implements Screen {
         this.gridRenderer = new ShapeRenderer();
         this.controlsRenderer = new ShapeRenderer();
         this.controlsImagesRenderer = new SpriteBatch();
-        this.gameNotification = new GameNotification(game, "Testing", 2, 400, 280, () -> System.out.println("Closed"));
+        this.gameNotification = new GameNotification();
         this.stage = new Stage(game.getViewport(), batch);
 
         GridManager.getInstance().init(game.getCenterX(), game.getCenterY());
+        GameNotification.getInstance().init(game, "Testing", 2, 400, 280, () -> System.out.println("Closed"));
 
         final List<PlayerActor> players = Database.getInstance().getPlayers();
         players.forEach(stage::addActor);
@@ -86,10 +87,10 @@ public class GameScreen implements Screen {
                         PlayerActor nextActivePlayer = GridManager.getInstance().getNextActivePlayer();
                         if (nextActivePlayer == null) {
                             GridManager.getInstance().resetActivePlayer();
-                            GameScreen.this.gameNotification.setText("Showtime!");
-                            GameScreen.this.gameNotification.setDialogEvent(() -> new Thread(() -> applyAllPlayerMoves()).start());
+                            GameNotification.getInstance().setText("Showtime!");
+                            GameNotification.getInstance().setDialogEvent(() -> new Thread(() -> applyAllPlayerMoves()).start());
                         } else {
-                            GameScreen.this.gameNotification.setText(nextActivePlayer.getName());
+                            GameNotification.getInstance().setText(nextActivePlayer.getName());
                         }
                     }
                 }
@@ -110,7 +111,7 @@ public class GameScreen implements Screen {
         }
 
         String playerName = GridManager.getInstance().getActivePlayer().getName();
-        GameScreen.this.gameNotification.setText(playerName);
+        GameNotification.getInstance().setText(playerName);
     }
 
     @Override
@@ -123,7 +124,7 @@ public class GameScreen implements Screen {
         drawControls();
         drawControlImages();
 
-        this.gameNotification.drawNotification();
+        GameNotification.getInstance().drawNotification();
     }
 
     private void drawPlayers() {
@@ -285,6 +286,6 @@ public class GameScreen implements Screen {
     public void dispose() {
         gridRenderer.dispose();
         batch.dispose();
-        this.gameNotification.dispose();
+        GameNotification.getInstance().dispose();
     }
 }

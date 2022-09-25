@@ -56,7 +56,7 @@ public class MainScreen implements Screen {
 		batch.draw(title, game.getCenterX() - (title.getWidth() / 2f), 420);
 		batch.end();
 
-		drawDebugLines();
+		//drawDebugLines();
 	}
 
 	@Override

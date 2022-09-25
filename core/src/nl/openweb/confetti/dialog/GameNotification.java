@@ -13,11 +13,13 @@ import nl.openweb.confetti.ConfettiGame;
 public class GameNotification {
     private static final int MARGIN = 10;
 
-    private final ShapeRenderer notificationRenderer;
-    private final GlyphLayout glyphLayout;
-    private final ConfettiGame game;
-    private final SpriteBatch batch;
-    private final float duration;
+    private static GameNotification gameNotification;
+
+    private ShapeRenderer notificationRenderer;
+    private GlyphLayout glyphLayout;
+    private ConfettiGame game;
+    private SpriteBatch batch;
+    private float duration;
     private float width;
     private float height;
     private float startX;
@@ -29,7 +31,15 @@ public class GameNotification {
 
     private float timePassed = Float.MAX_VALUE;
 
-    public GameNotification(ConfettiGame game, String text, int duration, int width, int height, DialogEvent dialogEvent) {
+    public static GameNotification getInstance() {
+        if (gameNotification == null) {
+            gameNotification = new GameNotification();
+        }
+
+        return gameNotification;
+    }
+
+    public void init(ConfettiGame game, String text, int duration, int width, int height, DialogEvent dialogEvent) {
         this.game = game;
         this.text = text;
         this.duration = duration;
