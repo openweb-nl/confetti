@@ -22,7 +22,6 @@ import nl.openweb.confetti.model.PlayerActor;
 import java.util.List;
 import java.util.Optional;
 
-import static nl.openweb.confetti.GridManager.PLAYER_MOVE_DELAY;
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
 import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
 import static nl.openweb.confetti.model.Player.AMOUNT_OF_MOVES;
@@ -35,9 +34,7 @@ public class GameScreen implements Screen {
     private final ShapeRenderer gridRenderer;
     private final ShapeRenderer controlsRenderer;
     private final SpriteBatch controlsImagesRenderer;
-    private final GameNotification gameNotification;
     private final int CONTROL_CELL_SIZE = 55;
-    //private final AtomicInteger activePlayer = new AtomicInteger(0);
 
     public GameScreen(ConfettiGame game) {
         this.game = game;
@@ -46,7 +43,6 @@ public class GameScreen implements Screen {
         this.gridRenderer = new ShapeRenderer();
         this.controlsRenderer = new ShapeRenderer();
         this.controlsImagesRenderer = new SpriteBatch();
-        this.gameNotification = new GameNotification();
         this.stage = new Stage(game.getViewport(), batch);
 
         GridManager.getInstance().init(game.getCenterX(), game.getCenterY());
@@ -64,33 +60,42 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
             public boolean keyDown(int keycode) {
-                int playersAlive = GridManager.getInstance().getPlayers().stream().filter(PlayerActor::isAlive).toList().size() - 1;
+                if (!GameNotification.getInstance().isVisible()) {
+                    int playersAlive = GridManager.getInstance().getPlayers().stream().filter(PlayerActor::isAlive).toList().size() - 1;
 
-                PlayerActor currentPlayer = GridManager.getInstance().getActivePlayer();
-                if (keycode == Input.Keys.LEFT) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), -1, 0));
-                }
-                if (keycode == Input.Keys.RIGHT) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 1, 0));
-                }
-                if (keycode == Input.Keys.UP) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, 1));
-                }
-                if (keycode == Input.Keys.DOWN) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, -1));
-                }
-                if (keycode == Input.Keys.BACKSPACE) {
-                    currentPlayer.revertMove();
-                }
-                if (keycode == Input.Keys.SPACE) {
-                    if (currentPlayer.getMoves().size() == AMOUNT_OF_MOVES) {
-                        PlayerActor nextActivePlayer = GridManager.getInstance().getNextActivePlayer();
-                        if (nextActivePlayer == null) {
-                            GridManager.getInstance().resetActivePlayer();
-                            GameNotification.getInstance().setText("Showtime!");
-                            GameNotification.getInstance().setDialogEvent(() -> new Thread(() -> applyAllPlayerMoves()).start());
-                        } else {
-                            GameNotification.getInstance().setText(nextActivePlayer.getName());
+                    PlayerActor currentPlayer = GridManager.getInstance().getActivePlayer();
+                    if (keycode == Input.Keys.LEFT) {
+                        currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), -1, 0));
+                    }
+                    if (keycode == Input.Keys.RIGHT) {
+                        currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 1, 0));
+                    }
+                    if (keycode == Input.Keys.UP) {
+                        currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, 1));
+                    }
+                    if (keycode == Input.Keys.DOWN) {
+                        currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, -1));
+                    }
+                    if (keycode == Input.Keys.BACKSPACE) {
+                        currentPlayer.revertMove();
+                    }
+                    if (keycode == Input.Keys.SPACE) {
+                        if (currentPlayer.getMoves().size() == AMOUNT_OF_MOVES) {
+                            PlayerActor nextActivePlayer = GridManager.getInstance().getNextActivePlayer();
+                            if (nextActivePlayer == null) {
+                                GridManager.getInstance().resetActivePlayer();
+                                GameNotification.getInstance().showNotification("Showtime!");
+                                GameNotification.getInstance().setDialogEvent(() -> new Thread(() -> applyAllPlayerMoves()).start());
+                            } else {
+                                GameNotification.getInstance().showNotification(nextActivePlayer.getName());
+                            }
+                        }
+                    }
+                } else {
+                    if (keycode == Input.Keys.ENTER && GameNotification.getInstance().isVisible() && GameNotification.getInstance().isWaitForKeyPress()) {
+                        GameNotification.getInstance().close();
+                        if (GridManager.getInstance().isGameFinished()) {
+                            GameScreen.this.game.setScreen(new MainScreen(GameScreen.this.game));
                         }
                     }
                 }
@@ -111,7 +116,7 @@ public class GameScreen implements Screen {
         }
 
         String playerName = GridManager.getInstance().getActivePlayer().getName();
-        GameNotification.getInstance().setText(playerName);
+        GameNotification.getInstance().showNotification(playerName);
     }
 
     @Override
@@ -130,12 +135,6 @@ public class GameScreen implements Screen {
     private void drawPlayers() {
         batch.begin();
         batch.setProjectionMatrix(camera.combined);
-        /*GridManager.getInstance().getPlayers().stream().filter(PlayerActor::isAlive).forEach(player -> {
-            GridCell playerGridCell = GridManager.getInstance().getPlayerGridCell(player);
-            if (!player.isDead()) {
-                batch.draw(player.getSpriteTexture(), player.getCellDrawXPosition(playerGridCell), player.getCellDrawYPosition(playerGridCell));
-            }
-        });*/
         batch.end();
 
         stage.act(Gdx.graphics.getDeltaTime());
@@ -183,53 +182,6 @@ public class GameScreen implements Screen {
 
     private void applyAllPlayerMoves() {
         GridManager.getInstance().performPlayerMove();
-        /*long playersAlive = GridManager.getInstance().getPlayers().stream().filter(PlayerActor::isAlive).count();
-
-        PlayerActor activePlayer = GridManager.getInstance().getActivePlayer();
-        while (activePlayer != null) {
-            *//*try {
-                Thread.sleep(PLAYER_MOVE_DELAY);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            GridManager.getInstance().performPlayerMove();
-            Optional deadPlayer = hitPlayer(activePlayer);
-
-            if (deadPlayer.isPresent()) {
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            activePlayer = GridManager.getInstance().getNextActivePlayer(true);*//*
-
-        }*/
-
-       /* if (playersAlive > 1) {
-            for (int i = 0; i < AMOUNT_OF_MOVES; i++) {
-                GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).forEach(player -> {
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                            //activePlayer.set(GridManager.getInstance().getPlayers().indexOf(player));
-                            GridManager.getInstance().setActivePlayer(player);
-                            Move move = player.popMove();
-                            if (move != null) {
-                                player.applyMove(move);
-                                hitPlayer(player);
-                            }
-                        }
-                );
-            }
-
-            this.gameNotification.setText("Next round!");
-            this.gameNotification.setDialogEvent(this::startNewRound);
-        } else {
-            this.gameNotification.setText(GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).toList().get(0).getName() + " has WON!");
-        }*/
     }
 
     private Optional hitPlayer(PlayerActor activePlayer) {
@@ -239,7 +191,7 @@ public class GameScreen implements Screen {
                     player.getGridCoordinates().getRow() == activePlayer.getGridCoordinates().getRow() &&
                     !player.getId().equals(activePlayer.getId())) {
                 player.setAlive(false);
-                gameNotification.setText(player.getName() + " killed by " + activePlayer.getName());
+                GameNotification.getInstance().showNotification(player.getName() + " killed by " + activePlayer.getName());
                 deadPlayer = player;
             }
         }

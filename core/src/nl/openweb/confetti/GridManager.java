@@ -23,6 +23,8 @@ public class GridManager {
     private List<PlayerActor> players;
     private String activePlayerId;
 
+    private boolean gameFinished;
+
     private static GridManager gridManager;
 
     public static GridManager getInstance() {
@@ -57,19 +59,18 @@ public class GridManager {
     public PlayerActor getNextActivePlayer(boolean resetToStart) {
         int nextPlayerIndex = players.indexOf(getActivePlayer()) + 1;
         long playersAliveCount = players.stream().filter(PlayerActor::isAlive).count();
-
         long playersNoMovesCount = players.stream().filter(playerActor -> playerActor.getMoves().size() == 0).count();
-        if (playersNoMovesCount == players.size()) {
-            GameNotification.getInstance().setText("Next round!");
-        }
 
         if(playersAliveCount > 1) {
+            if (playersNoMovesCount == players.size()) {
+                GameNotification.getInstance().showNotification("Next round!");
+            }
             if (nextPlayerIndex < players.size()) {
                 PlayerActor player = players.get(nextPlayerIndex);
                 activePlayerId = player.getId();
 
                 if (!player.isAlive()) {
-                    return getNextActivePlayer();
+                    return getNextActivePlayer(true);
                 } else {
                     return player;
                 }
@@ -83,9 +84,10 @@ public class GridManager {
         } else {
             Optional<PlayerActor> winningPlayerOpt = players.stream().filter(PlayerActor::isAlive).findFirst();
             if (winningPlayerOpt.isPresent()) {
+                gameFinished = true;
                 activePlayerId = winningPlayerOpt.get().getId();
                 System.out.println("Only one player left, player has WON the game: " + winningPlayerOpt.get().getName());
-                GameNotification.getInstance().setText("Winner " + winningPlayerOpt.get().getName());
+                GameNotification.getInstance().showNotification("Winner " + winningPlayerOpt.get().getName(), true);
             }
             return null;
         }

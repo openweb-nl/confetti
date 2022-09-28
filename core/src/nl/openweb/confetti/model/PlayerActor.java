@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import nl.openweb.confetti.GridManager;
+import nl.openweb.confetti.dialog.GameNotification;
 import nl.openweb.confetti.exception.GridOutOfBoundsException;
 
 import java.awt.geom.Point2D;
@@ -84,6 +85,8 @@ public class PlayerActor extends Actor {
                 if (nextActivePlayer != null) {
                     System.out.println("Next active player: " + nextActivePlayer.getName());
                     GridManager.getInstance().performPlayerMove();
+                } else {
+                    System.out.println("Unable to determine next active player!");
                 }
             }
 
@@ -126,8 +129,13 @@ public class PlayerActor extends Actor {
         } catch (GridOutOfBoundsException e) {
             setAlive(false);
             targetGridCoordinates.setCoordinates(gridCoordinates);
-            GridManager.getInstance().getNextActivePlayer(true);
-            GridManager.getInstance().performPlayerMove();
+
+            Runnable executeFunction = () -> {
+                GridManager.getInstance().getNextActivePlayer(true);
+                GridManager.getInstance().performPlayerMove();
+            };
+
+            GameNotification.getInstance().showNotification(getName() + " DIED!", false, executeFunction);
         }
 
         Optional hitPlayer = hitPlayer();
@@ -150,9 +158,11 @@ public class PlayerActor extends Actor {
 
     public void setAlive(boolean alive) {
         this.alive = alive;
-        if (alive)
+        if (alive) {
             System.out.println(getName() + " is alive!");
-        else
+        } else {
+            this.moves.clear();
             System.out.println(getName() + " is DEAD!");
+        }
     }
 }
