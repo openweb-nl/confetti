@@ -126,19 +126,11 @@ public class PlayerActor extends Actor {
         GridCoordinates newGridCoordinates = targetGridCoordinates.applyMove(move);
         try{
             GridManager.getInstance().getCellCenterCoordinates(newGridCoordinates);
+            Optional hitPlayer = hitPlayer();
         } catch (GridOutOfBoundsException e) {
             setAlive(false);
             targetGridCoordinates.setCoordinates(gridCoordinates);
-
-            Runnable executeFunction = () -> {
-                GridManager.getInstance().getNextActivePlayer(true);
-                GridManager.getInstance().performPlayerMove();
-            };
-
-            GameNotification.getInstance().showNotification(getName() + " DIED!", false, executeFunction);
         }
-
-        Optional hitPlayer = hitPlayer();
     }
 
     private Optional hitPlayer() {
@@ -163,6 +155,11 @@ public class PlayerActor extends Actor {
         } else {
             this.moves.clear();
             System.out.println(getName() + " is DEAD!");
+            Runnable executeFunction = () -> {
+                GridManager.getInstance().getNextActivePlayer(true);
+            };
+
+            GameNotification.getInstance().showNotification(getName() + " DIED!", false, executeFunction);
         }
     }
 }

@@ -10,15 +10,14 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import lombok.Getter;
 import nl.openweb.confetti.ConfettiGame;
 
-import java.util.function.Function;
-
 public class GameNotification {
     private static final int MARGIN = 10;
 
     private static GameNotification gameNotification;
 
     private ShapeRenderer notificationRenderer;
-    private GlyphLayout glyphLayout;
+    private GlyphLayout normalTextLayout;
+    private GlyphLayout subTextLayout;
     private ConfettiGame game;
     private SpriteBatch batch;
     private float duration;
@@ -28,6 +27,7 @@ public class GameNotification {
     private float startY;
     private DialogEvent dialogEvent;
     private BitmapFont font;
+    private BitmapFont subFont;
     private String text;
 
     @Getter
@@ -56,7 +56,8 @@ public class GameNotification {
         this.startX = game.getCenterX() - (width / 2f);
         this.startY = game.getCenterY() - (height / 2f);
         this.notificationRenderer = new ShapeRenderer();
-        this.glyphLayout = new GlyphLayout();
+        this.normalTextLayout = new GlyphLayout();
+        this.subTextLayout = new GlyphLayout();
         this.dialogEvent = dialogEvent;
         this.batch = new SpriteBatch();
         this.createBitmapFont();
@@ -67,7 +68,7 @@ public class GameNotification {
         timePassed += deltaTime;
 
         if (timePassed < duration || waitForKeyPress) {
-            width = glyphLayout.width + 200;
+            width = normalTextLayout.width + 200;
             startX = game.getCenterX() - (width / 2f);
 
             notificationRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -83,7 +84,12 @@ public class GameNotification {
 
             batch.begin();
             batch.setProjectionMatrix(game.getCamera().combined);
-            font.draw(batch, glyphLayout, game.getCenterX() - (glyphLayout.width / 2f) , game.getCenterY() + 16);
+            font.draw(batch, normalTextLayout, game.getCenterX() - (normalTextLayout.width / 2f) , game.getCenterY() + 16);
+
+            if (waitForKeyPress) {
+                subFont.draw(batch, subTextLayout, game.getCenterX() - (subTextLayout.width / 2f), game.getCenterY() - 72);
+            }
+
             batch.end();
         } else if (visible) {
             visible = false;
@@ -119,7 +125,8 @@ public class GameNotification {
         this.waitForKeyPress = waitForKeyPress;
         this.executeFunction = executeFunction;
 
-        glyphLayout.setText(font, text);
+        normalTextLayout.setText(font, text);
+        subTextLayout.setText(subFont, "< ENTER >");
     }
 
     private void createBitmapFont() {
@@ -134,6 +141,10 @@ public class GameNotification {
         parameter.shadowColor = new Color(0, 0.5f, 0, 0.75f);
 
         font = generator.generateFont(parameter);
+
+        parameter.size = 16;
+
+        subFont = generator.generateFont(parameter);
     }
 
     public void close() {
