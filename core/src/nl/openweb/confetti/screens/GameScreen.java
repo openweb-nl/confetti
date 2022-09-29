@@ -10,32 +10,31 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import nl.openweb.confetti.ConfettiGame;
 import nl.openweb.confetti.GridManager;
 import nl.openweb.confetti.database.Database;
 import nl.openweb.confetti.dialog.GameNotification;
 import nl.openweb.confetti.model.GridCell;
 import nl.openweb.confetti.model.Move;
-import nl.openweb.confetti.model.Player;
+import nl.openweb.confetti.model.PlayerActor;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static nl.openweb.confetti.model.GridCell.GRID_CELL_SIZE;
 import static nl.openweb.confetti.model.GridCell.GRID_DIMENSION;
 import static nl.openweb.confetti.model.Player.AMOUNT_OF_MOVES;
 
 public class GameScreen implements Screen {
+    private final Stage stage;
     private final SpriteBatch batch;
     private final ConfettiGame game;
     private final Camera camera;
     private final ShapeRenderer gridRenderer;
     private final ShapeRenderer controlsRenderer;
     private final SpriteBatch controlsImagesRenderer;
-    private final GameNotification gameNotification;
     private final int CONTROL_CELL_SIZE = 55;
-    //private final AtomicInteger activePlayer = new AtomicInteger(0);
 
     public GameScreen(ConfettiGame game) {
         this.game = game;
@@ -44,10 +43,15 @@ public class GameScreen implements Screen {
         this.gridRenderer = new ShapeRenderer();
         this.controlsRenderer = new ShapeRenderer();
         this.controlsImagesRenderer = new SpriteBatch();
-        this.gameNotification = new GameNotification(game, "Testing", 2, 400, 280, () -> System.out.println("Closed"));
+        this.stage = new Stage(game.getViewport(), batch);
 
         GridManager.getInstance().init(game.getCenterX(), game.getCenterY());
-        GridManager.getInstance().setPlayers(Database.getInstance().getPlayers());
+        GameNotification.getInstance().init(game, "Testing", 2, 400, 280, () -> System.out.println("Closed"));
+
+        final List<PlayerActor> players = Database.getInstance().getPlayers();
+        players.forEach(stage::addActor);
+
+        GridManager.getInstance().setPlayers(players);
         Database.getInstance().addMoves(GridManager.getInstance().getPlayers().get(0), List.of(
                 new Move(GridManager.getInstance().getPlayers().get(0).getId(), 1, 1, 0))
         );
@@ -56,33 +60,42 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
             public boolean keyDown(int keycode) {
-                int playersAlive = GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).toList().size() - 1;
+                if (!GameNotification.getInstance().isVisible()) {
+                    int playersAlive = GridManager.getInstance().getPlayers().stream().filter(PlayerActor::isAlive).toList().size() - 1;
 
-                Player currentPlayer = GridManager.getInstance().getActivePlayer();
-                if (keycode == Input.Keys.LEFT) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), -1, 0));
-                }
-                if (keycode == Input.Keys.RIGHT) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 1, 0));
-                }
-                if (keycode == Input.Keys.UP) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, 1));
-                }
-                if (keycode == Input.Keys.DOWN) {
-                    currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, -1));
-                }
-                if (keycode == Input.Keys.BACKSPACE) {
-                    currentPlayer.revertMove();
-                }
-                if (keycode == Input.Keys.SPACE) {
-                    if (currentPlayer.getMoves().size() == AMOUNT_OF_MOVES) {
-                        Player nextActivePlayer = GridManager.getInstance().getNextActivePlayer();
-                        if (nextActivePlayer == null) {
-                            GridManager.getInstance().resetActivePlayer();
-                            GameScreen.this.gameNotification.setText("Showtime!");
-                            GameScreen.this.gameNotification.setDialogEvent(() -> new Thread(() -> applyAllPlayerMoves()).start());
-                        } else {
-                            GameScreen.this.gameNotification.setText(nextActivePlayer.getName());
+                    PlayerActor currentPlayer = GridManager.getInstance().getActivePlayer();
+                    if (keycode == Input.Keys.LEFT) {
+                        currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), -1, 0));
+                    }
+                    if (keycode == Input.Keys.RIGHT) {
+                        currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 1, 0));
+                    }
+                    if (keycode == Input.Keys.UP) {
+                        currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, 1));
+                    }
+                    if (keycode == Input.Keys.DOWN) {
+                        currentPlayer.addMove(new Move(currentPlayer.getId(), currentPlayer.getMoves().size(), 0, -1));
+                    }
+                    if (keycode == Input.Keys.BACKSPACE) {
+                        currentPlayer.revertMove();
+                    }
+                    if (keycode == Input.Keys.SPACE) {
+                        if (currentPlayer.getMoves().size() == AMOUNT_OF_MOVES) {
+                            PlayerActor nextActivePlayer = GridManager.getInstance().getNextActivePlayer();
+                            if (nextActivePlayer == null) {
+                                GridManager.getInstance().resetActivePlayer();
+                                GameNotification.getInstance().showNotification("Showtime!");
+                                GameNotification.getInstance().setDialogEvent(() -> new Thread(() -> applyAllPlayerMoves()).start());
+                            } else {
+                                GameNotification.getInstance().showNotification(nextActivePlayer.getName());
+                            }
+                        }
+                    }
+                } else {
+                    if (keycode == Input.Keys.ENTER && GameNotification.getInstance().isVisible() && GameNotification.getInstance().isWaitForKeyPress()) {
+                        GameNotification.getInstance().close();
+                        if (GridManager.getInstance().isGameFinished()) {
+                            GameScreen.this.game.setScreen(new MainScreen(GameScreen.this.game));
                         }
                     }
                 }
@@ -103,7 +116,7 @@ public class GameScreen implements Screen {
         }
 
         String playerName = GridManager.getInstance().getActivePlayer().getName();
-        GameScreen.this.gameNotification.setText(playerName);
+        GameNotification.getInstance().showNotification(playerName);
     }
 
     @Override
@@ -116,20 +129,16 @@ public class GameScreen implements Screen {
         drawControls();
         drawControlImages();
 
-        this.gameNotification.drawNotification();
+        GameNotification.getInstance().drawNotification();
     }
 
     private void drawPlayers() {
         batch.begin();
         batch.setProjectionMatrix(camera.combined);
-
-        GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).forEach(player -> {
-            GridCell playerGridCell = GridManager.getInstance().getPlayerGridCell(player);
-            if (!player.isDead()) {
-                batch.draw(player.getSpriteTexture(), player.getCellDrawXPosition(playerGridCell), player.getCellDrawYPosition(playerGridCell));
-            }
-        });
         batch.end();
+
+        stage.act(Gdx.graphics.getDeltaTime());
+        stage.draw();
     }
 
 
@@ -146,7 +155,7 @@ public class GameScreen implements Screen {
     }
 
     private void drawControlImages() {
-        Player player = GridManager.getInstance().getActivePlayer();
+        PlayerActor player = GridManager.getInstance().getActivePlayer();
         controlsImagesRenderer.begin();
         controlsImagesRenderer.setProjectionMatrix(camera.combined);
         controlsImagesRenderer.draw(player.getSpriteTexture(), 5, (AMOUNT_OF_MOVES * CONTROL_CELL_SIZE) + 15);
@@ -172,40 +181,17 @@ public class GameScreen implements Screen {
     }
 
     private void applyAllPlayerMoves() {
-        long playersAlive = GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).count();
-
-        if (playersAlive > 1) {
-            for (int i = 0; i < AMOUNT_OF_MOVES; i++) {
-                GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).forEach(player -> {
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                            //activePlayer.set(GridManager.getInstance().getPlayers().indexOf(player));
-                            GridManager.getInstance().setActivePlayer(player);
-                            Move move = player.popMove();
-                            if (move != null) {
-                                player.applyMove(move);
-                                hitPlayer(player);
-                            }
-                        }
-                );
-            }
-
-            this.gameNotification.setText("Next round!");
-            this.gameNotification.setDialogEvent(this::startNewRound);
-        } else {
-            this.gameNotification.setText(GridManager.getInstance().getPlayers().stream().filter(Player::isAlive).toList().get(0).getName() + " has WON!");
-        }
+        GridManager.getInstance().performPlayerMove();
     }
 
-    private Optional hitPlayer(Player activePlayer) {
-        Player deadPlayer = null;
-        for (Player player : GridManager.getInstance().getPlayers()) {
-            if (player.getColumn() == activePlayer.getColumn() && player.getRow() == activePlayer.getRow() && !player.getId().equals(activePlayer.getId())) {
-                player.setDead(true);
-                gameNotification.setText(player.getName() + " killed by " + activePlayer.getName());
+    private Optional hitPlayer(PlayerActor activePlayer) {
+        PlayerActor deadPlayer = null;
+        for (PlayerActor player : GridManager.getInstance().getPlayers()) {
+            if (player.getGridCoordinates().getColumn() == activePlayer.getGridCoordinates().getColumn() &&
+                    player.getGridCoordinates().getRow() == activePlayer.getGridCoordinates().getRow() &&
+                    !player.getId().equals(activePlayer.getId())) {
+                player.setAlive(false);
+                GameNotification.getInstance().showNotification(player.getName() + " killed by " + activePlayer.getName());
                 deadPlayer = player;
             }
         }
@@ -252,6 +238,6 @@ public class GameScreen implements Screen {
     public void dispose() {
         gridRenderer.dispose();
         batch.dispose();
-        this.gameNotification.dispose();
+        GameNotification.getInstance().dispose();
     }
 }

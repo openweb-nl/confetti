@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture;
 import nl.openweb.confetti.model.GridCell;
 import nl.openweb.confetti.model.Move;
 import nl.openweb.confetti.model.Player;
+import nl.openweb.confetti.model.PlayerActor;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ public class Database {
         player.execute("INSERT INTO PLAYERS (id, name, texture, position) VALUES ('" + playerId + "', '" + playerName + "', '" + textureFilename + "', '" + position + "')");
     }
 
-    public void addMoves(Player player, List<Move> moves) {
+    public void addMoves(PlayerActor player, List<Move> moves) {
         final AtomicInteger moveId = new AtomicInteger(0);
         moves.forEach(move -> {
             Statement addMovesStatement;
@@ -96,15 +97,15 @@ public class Database {
         return moves;
     }
 
-    public List<Player> getPlayers() {
-        List<Player> players = new ArrayList<>();
+    public List<PlayerActor> getPlayers() {
+        List<PlayerActor> players = new ArrayList<>();
         try {
             ResultSet resultSet = conn.createStatement().executeQuery("SELECT * FROM PLAYERS");
             while (resultSet.next()) {
                 String[] positions = resultSet.getString("position").split("-");
                 Texture texture = new Texture(Gdx.files.internal(resultSet.getString("texture")));
 
-                Player player = new Player(
+                PlayerActor player = new PlayerActor(
                         resultSet.getString("id"),
                         resultSet.getString("name"),
                         texture,

@@ -7,29 +7,47 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.utils.Align;
+import lombok.Getter;
 import nl.openweb.confetti.ConfettiGame;
 
 public class GameNotification {
     private static final int MARGIN = 10;
 
-    private final ShapeRenderer notificationRenderer;
-    private final GlyphLayout glyphLayout;
-    private final ConfettiGame game;
-    private final SpriteBatch batch;
-    private final float duration;
+    private static GameNotification gameNotification;
+
+    private ShapeRenderer notificationRenderer;
+    private GlyphLayout normalTextLayout;
+    private GlyphLayout subTextLayout;
+    private ConfettiGame game;
+    private SpriteBatch batch;
+    private float duration;
     private float width;
     private float height;
     private float startX;
     private float startY;
     private DialogEvent dialogEvent;
     private BitmapFont font;
+    private BitmapFont subFont;
     private String text;
+
+    @Getter
+    private boolean waitForKeyPress;
+
+    @Getter
     private boolean visible;
 
     private float timePassed = Float.MAX_VALUE;
+    private Runnable executeFunction;
 
-    public GameNotification(ConfettiGame game, String text, int duration, int width, int height, DialogEvent dialogEvent) {
+    public static GameNotification getInstance() {
+        if (gameNotification == null) {
+            gameNotification = new GameNotification();
+        }
+
+        return gameNotification;
+    }
+
+    public void init(ConfettiGame game, String text, int duration, int width, int height, DialogEvent dialogEvent) {
         this.game = game;
         this.text = text;
         this.duration = duration;
@@ -38,7 +56,8 @@ public class GameNotification {
         this.startX = game.getCenterX() - (width / 2f);
         this.startY = game.getCenterY() - (height / 2f);
         this.notificationRenderer = new ShapeRenderer();
-        this.glyphLayout = new GlyphLayout();
+        this.normalTextLayout = new GlyphLayout();
+        this.subTextLayout = new GlyphLayout();
         this.dialogEvent = dialogEvent;
         this.batch = new SpriteBatch();
         this.createBitmapFont();
@@ -48,8 +67,8 @@ public class GameNotification {
         float deltaTime = Gdx.graphics.getDeltaTime();
         timePassed += deltaTime;
 
-        if (timePassed < duration) {
-            width = glyphLayout.width + 200;
+        if (timePassed < duration || waitForKeyPress) {
+            width = normalTextLayout.width + 200;
             startX = game.getCenterX() - (width / 2f);
 
             notificationRenderer.begin(ShapeRenderer.ShapeType.Filled);
@@ -65,11 +84,21 @@ public class GameNotification {
 
             batch.begin();
             batch.setProjectionMatrix(game.getCamera().combined);
-            font.draw(batch, glyphLayout, game.getCenterX() - (glyphLayout.width / 2f) , game.getCenterY() + 16);
+            font.draw(batch, normalTextLayout, game.getCenterX() - (normalTextLayout.width / 2f) , game.getCenterY() + 16);
+
+            if (waitForKeyPress) {
+                subFont.draw(batch, subTextLayout, game.getCenterX() - (subTextLayout.width / 2f), game.getCenterY() - 72);
+            }
+
             batch.end();
         } else if (visible) {
             visible = false;
+            waitForKeyPress = false;
             dialogEvent.dialogClosed();
+
+            if (executeFunction != null) {
+                executeFunction.run();
+            }
         }
     }
 
@@ -81,12 +110,23 @@ public class GameNotification {
         this.dialogEvent = dialogEvent;
     }
 
-    public void setText(final String text) {
+    public void showNotification(final String text) {
+        showNotification(text, false);
+    }
+
+    public void showNotification(final String text, boolean waitForKeyPress) {
+        showNotification(text, waitForKeyPress, null);
+    }
+
+    public void showNotification(final String text, boolean waitForKeyPress, Runnable executeFunction) {
         this.text = text;
         this.timePassed = 0;
         this.visible = true;
+        this.waitForKeyPress = waitForKeyPress;
+        this.executeFunction = executeFunction;
 
-        glyphLayout.setText(font, text);
+        normalTextLayout.setText(font, text);
+        subTextLayout.setText(subFont, "< ENTER >");
     }
 
     private void createBitmapFont() {
@@ -101,6 +141,15 @@ public class GameNotification {
         parameter.shadowColor = new Color(0, 0.5f, 0, 0.75f);
 
         font = generator.generateFont(parameter);
+
+        parameter.size = 16;
+
+        subFont = generator.generateFont(parameter);
+    }
+
+    public void close() {
+        this.waitForKeyPress = false;
+        this.visible = false;
     }
 
     public void dispose() {

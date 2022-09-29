@@ -3,7 +3,9 @@ package nl.openweb.confetti.model;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Texture;
+import nl.openweb.confetti.GridManager;
 
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +21,8 @@ public class Player {
     private boolean dead;
     private List<Move> moves;
     public static final int AMOUNT_OF_MOVES = 5;
+    private boolean moving;
+    private Point2D position;
 
     private Music music;
 
@@ -30,6 +34,9 @@ public class Player {
         this.column = column;
         this.moves = new ArrayList<>();
         this.music = Gdx.audio.newMusic((Gdx.files.internal("death.mp3")));
+
+        final GridCell playerGridCell = GridManager.getInstance().getPlayerGridCell(this);
+        this.position = new Point2D.Float(getCellDrawXPosition(playerGridCell), getCellDrawYPosition(playerGridCell));
     }
 
     public String getName() {
@@ -86,12 +93,14 @@ public class Player {
 
         if (newColumnPos < GRID_DIMENSION && newColumnPos >= 0) {
             this.column = newColumnPos;
+            moving = true;
         } else {
             dead = true;
         }
 
         if (newRowPos < GRID_DIMENSION && newRowPos >= 0) {
             this.row = newRowPos;
+            moving = true;
         } else {
             dead = true;
         }
@@ -99,6 +108,18 @@ public class Player {
         if(dead) {
             this.music.play();
         }
+    }
+
+    public Point2D getPosition() {
+        return position;
+    }
+
+    public void setPosition(Point2D position) {
+        this.position = position;
+    }
+
+    public boolean isMoving() {
+        return moving;
     }
 
     public void addMove(Move move) {
